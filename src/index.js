@@ -1,35 +1,48 @@
 import * as THREE from 'three';
 
-let camera, scene, renderer;
+let camera, scene, renderer, canvas;
 let geometry, material, mesh;
+let plane, mat, uniforms;
 
-init();
+let fragmentShader, vertexShader;
+
+fetch("/shaders/life.frag")
+  .then((r) => r.text())
+  .then((t) => fragmentShader = t)
+  .then(init)
 
 function init() {
-
-    camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 10 );
-    camera.position.z = 1;
-
-    scene = new THREE.Scene();
-
-    geometry = new THREE.BoxGeometry( 0.2, 0.2, 0.2 );
-    material = new THREE.MeshNormalMaterial();
-
-    mesh = new THREE.Mesh( geometry, material );
-    scene.add( mesh );
-
-    renderer = new THREE.WebGLRenderer( { antialias: true } );
+  // Boilerplate: camera, scene, renderer
+  camera = new THREE.OrthographicCamera(-1,1,1,-1,-1,1);
+  scene = new THREE.Scene();
+  canvas = document.createElement("canvas");
+  document.body.appendChild(canvas);
+  renderer = new THREE.WebGLRenderer({canvas});
+  renderer.setSize( window.innerWidth, window.innerHeight );
+  renderer.setAnimationLoop( animation );
+  window.addEventListener('resize', () => {
     renderer.setSize( window.innerWidth, window.innerHeight );
-    renderer.setAnimationLoop( animation );
-    window.addEventListener('resize', () => {renderer.setSize( window.innerWidth, window.innerHeight )}, false)
-    document.body.appendChild( renderer.domElement );
+    uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+  }, false)
+  document.body.appendChild( renderer.domElement );
+
+  // full-canvas shader boilerplate.
+  plane = new THREE.PlaneBufferGeometry(2,2);
+  
+  uniforms = {
+    u_time: { value: 0 },
+    u_resolution:  { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+  };
+  material = new THREE.ShaderMaterial({
+    fragmentShader,
+    uniforms,
+  });
+  scene.add(new THREE.Mesh(plane, material));
 }
 
 function animation( time ) {
 
-    mesh.rotation.x = time / 2000;
-    mesh.rotation.y = time / 1000;
-
-    renderer.render( scene, camera );
-
+  // uniforms.u_resolution.value.set(canvas.width, canvas.height, 1);
+  uniforms.u_time.value = time * 0.001;
+  renderer.render( scene, camera );
 }
