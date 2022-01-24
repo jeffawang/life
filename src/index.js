@@ -1,48 +1,55 @@
 import * as THREE from 'three';
+import "./index.css";
 
 let camera, scene, renderer, canvas;
-let geometry, material, mesh;
-let plane, mat, uniforms;
+
+const uniforms = {
+  u_time: { value: 0 },
+  u_resolution:  { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+  u_frame: {value: 0 },
+};
 
 let fragmentShader, vertexShader;
 
 fetch("/shaders/life.frag")
   .then((r) => r.text())
   .then((t) => fragmentShader = t)
-  .then(boilerplate)
-  .then(main)
+  .then(init)
+  .then(img)
 
-function boilerplate() {
+function init() {
   // Boilerplate: camera, scene, renderer
   camera = new THREE.OrthographicCamera(-1,1,1,-1,-1,1);
   scene = new THREE.Scene();
-  canvas = document.createElement("canvas");
-  document.body.appendChild(canvas);
-  renderer = new THREE.WebGLRenderer({canvas});
-  renderer.setSize( window.innerWidth, window.innerHeight );
-  renderer.setAnimationLoop( animation );
-  window.addEventListener('resize', () => {
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
-  }, false)
+
+  renderer = new THREE.WebGLRenderer({antialias: true});
   document.body.appendChild( renderer.domElement );
+  function resize() {
+    renderer.setSize( document.body.clientWidth, document.body.clientHeight );
+    uniforms.u_resolution.value.set(document.body.clientWidth, document.body.clientHeight);
+  }
+  resize()
+  window.addEventListener('resize', resize, false);
+
+  
+  renderer.setAnimationLoop( main );
 }
 
-function main() {
-  plane = new THREE.PlaneBufferGeometry(2,2);
-  
-  uniforms = {
-    u_time: { value: 0 },
-    u_resolution:  { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-  };
-  material = new THREE.ShaderMaterial({
+// main is the hot loop, passed to setAnimationLoop by init()
+function main( time, frame ) {
+  uniforms.u_time.value = time * 0.001;
+  uniforms.u_frame.value = frame;
+  renderer.render( scene, camera );
+}
+
+// img defines what finally gets rendered to the scene.
+function img() {
+  const plane = new THREE.PlaneBufferGeometry(2,2);
+
+  const material = new THREE.ShaderMaterial({
     fragmentShader,
     uniforms,
   });
-  scene.add(new THREE.Mesh(plane, material));
-}
 
-function animation( time ) {
-  uniforms.u_time.value = time * 0.001;
-  renderer.render( scene, camera );
+  scene.add(new THREE.Mesh(plane, material));
 }
