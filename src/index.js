@@ -1,40 +1,31 @@
 import * as THREE from 'three';
 import "./index.css";
 
-let camera, scene, renderer, lifeRenderer;
+let camera, scene, renderer;
 let pingScene, pongScene;
 let ping, pong;
 let frame = 0;
 
-const mainUniforms = {
+const uniforms = {
   u_time: { value: 0 },
   u_resolution:  { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
   u_frame: { value: 4, type: "i" },
   u_texture: {value: null}
 };
 
-const uniforms = {
-  u_time: { value: 0 },
-  u_resolution:  { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-  u_frame: {value: 4, type: "i" },
-  u_texture: {value: null}
-};
-
 let lifeShader, mainShader;
-fetch("/shaders/main.frag")
-  .then((r) => r.text())
-  .then((t) => mainShader = t)
-  .then(() => {
-    fetch("/shaders/life.frag")
-      .then((r) => r.text())
-      .then((t) => lifeShader = t)
-      .then(init)
-      .then(img)
-      .then(life)
-      .then(lifePong)
-  });
-
-let texture;
+Promise.all([
+  fetch("/shaders/main.frag")
+    .then((r) => r.text())
+    .then((t) => mainShader = t),
+  fetch("/shaders/life.frag")
+    .then((r) => r.text())
+    .then((t) => lifeShader = t)
+])
+  .then(init)
+  .then(img)
+  .then(life)
+  .then(lifePong);
 
 function init() {
   // Boilerplate: camera, scene, renderer
@@ -42,17 +33,18 @@ function init() {
   scene = new THREE.Scene();
 
   renderer = new THREE.WebGLRenderer({antialias: true});
-  ping = new THREE.WebGLRenderTarget(document.body.clientWidth, document.body.clientHeight);
+  ping = new THREE.WebGLRenderTarget();
   pingScene = new THREE.Scene();
-  pong = new THREE.WebGLRenderTarget(document.body.clientWidth, document.body.clientHeight);
+  pong = new THREE.WebGLRenderTarget();
   pongScene = new THREE.Scene();
   document.body.appendChild( renderer.domElement );
   function resize() {
-    renderer.setSize( document.body.clientWidth, document.body.clientHeight );
-    ping.setSize( document.body.clientWidth, document.body.clientHeight );
-    pong.setSize( document.body.clientWidth, document.body.clientHeight );
-    uniforms.u_resolution.value.set(document.body.clientWidth, document.body.clientHeight);
-    mainUniforms.u_resolution.value.set(document.body.clientWidth, document.body.clientHeight);
+    let w = document.body.clientWidth;
+    let h = document.body.clientHeight;
+    renderer.setSize( w, h );
+    ping.setSize( w, h );
+    pong.setSize( w, h );
+    uniforms.u_resolution.value.set(w, h);
   }
   resize()
   window.addEventListener('resize', resize, false);
@@ -63,21 +55,21 @@ function init() {
 
 // main is the hot loop, passed to setAnimationLoop by init()
 function main( time ) {
+  // uniforms.u_time.value = time * 0.001;
+  // uniforms.u_frame.value = frame;
+
   uniforms.u_time.value = time * 0.001;
   uniforms.u_frame.value = frame;
-
-  mainUniforms.u_time.value = time * 0.001;
-  mainUniforms.u_frame.value = frame;
 
   // populate buffer
   if (frame % 2 === 0) {
     uniforms.u_texture.value = pong.texture;
-    mainUniforms.u_texture.value = pong.texture;
+    // uniforms.u_texture.value = pong.texture;
     renderer.setRenderTarget(ping);
     renderer.render( pingScene, camera );
   } else {
     uniforms.u_texture.value = ping.texture;
-    mainUniforms.u_texture.value = ping.texture;
+    // uniforms.u_texture.value = ping.texture;
     renderer.setRenderTarget(pong);
     renderer.render( pongScene, camera );
   }
@@ -116,7 +108,7 @@ function img() {
 
   const material = new THREE.ShaderMaterial({
     fragmentShader: mainShader,
-    uniforms: mainUniforms,
+    uniforms: uniforms,
   });
 
   scene.add(new THREE.Mesh(plane, material));
