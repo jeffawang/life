@@ -29,7 +29,6 @@ function boilerplate() {
 }
 
 function main() {
-  // full-canvas shader boilerplate.
   plane = new THREE.PlaneBufferGeometry(2,2);
   
   uniforms = {
@@ -44,8 +43,6 @@ function main() {
 }
 
 function animation( time ) {
-
-  // uniforms.u_resolution.value.set(canvas.width, canvas.height, 1);
   uniforms.u_time.value = time * 0.001;
   renderer.render( scene, camera );
 }
