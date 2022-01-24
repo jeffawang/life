@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import "./index.css";
 
-let camera, scene, renderer, canvas;
+let camera, scene, renderer;
 
 const uniforms = {
   u_time: { value: 0 },
