@@ -9,9 +9,10 @@ let fragmentShader, vertexShader;
 fetch("/shaders/life.frag")
   .then((r) => r.text())
   .then((t) => fragmentShader = t)
-  .then(init)
+  .then(boilerplate)
+  .then(main)
 
-function init() {
+function boilerplate() {
   // Boilerplate: camera, scene, renderer
   camera = new THREE.OrthographicCamera(-1,1,1,-1,-1,1);
   scene = new THREE.Scene();
@@ -25,7 +26,9 @@ function init() {
     uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
   }, false)
   document.body.appendChild( renderer.domElement );
+}
 
+function main() {
   // full-canvas shader boilerplate.
   plane = new THREE.PlaneBufferGeometry(2,2);
   
