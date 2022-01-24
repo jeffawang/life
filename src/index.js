@@ -2,19 +2,22 @@ import * as THREE from 'three';
 import "./index.css";
 
 let camera, scene, renderer, lifeRenderer;
-let lifeScene, lifeRenderTarget;
+let pingScene, pongScene;
+let ping, pong;
+let frame = 0;
 
 const mainUniforms = {
   u_time: { value: 0 },
   u_resolution:  { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-  u_frame: {value: 0 },
+  u_frame: { value: 4, type: "i" },
   u_texture: {value: null}
 };
 
 const uniforms = {
   u_time: { value: 0 },
   u_resolution:  { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
-  u_frame: {value: 0 },
+  u_frame: {value: 4, type: "i" },
+  u_texture: {value: null}
 };
 
 let lifeShader, mainShader;
@@ -28,6 +31,7 @@ fetch("/shaders/main.frag")
       .then(init)
       .then(img)
       .then(life)
+      .then(lifePong)
   });
 
 let texture;
@@ -37,16 +41,16 @@ function init() {
   camera = new THREE.OrthographicCamera(-1,1,1,-1,-1,1);
   scene = new THREE.Scene();
 
-
-  texture = new THREE.TextureLoader().load('noise.jpg');
-
   renderer = new THREE.WebGLRenderer({antialias: true});
-  lifeRenderTarget = new THREE.WebGLRenderTarget(document.body.clientWidth, document.body.clientHeight);
-  lifeScene = new THREE.Scene();
+  ping = new THREE.WebGLRenderTarget(document.body.clientWidth, document.body.clientHeight);
+  pingScene = new THREE.Scene();
+  pong = new THREE.WebGLRenderTarget(document.body.clientWidth, document.body.clientHeight);
+  pongScene = new THREE.Scene();
   document.body.appendChild( renderer.domElement );
   function resize() {
     renderer.setSize( document.body.clientWidth, document.body.clientHeight );
-    lifeRenderTarget.setSize( document.body.clientWidth, document.body.clientHeight );
+    ping.setSize( document.body.clientWidth, document.body.clientHeight );
+    pong.setSize( document.body.clientWidth, document.body.clientHeight );
     uniforms.u_resolution.value.set(document.body.clientWidth, document.body.clientHeight);
     mainUniforms.u_resolution.value.set(document.body.clientWidth, document.body.clientHeight);
   }
@@ -58,7 +62,7 @@ function init() {
 }
 
 // main is the hot loop, passed to setAnimationLoop by init()
-function main( time, frame ) {
+function main( time ) {
   uniforms.u_time.value = time * 0.001;
   uniforms.u_frame.value = frame;
 
@@ -66,13 +70,22 @@ function main( time, frame ) {
   mainUniforms.u_frame.value = frame;
 
   // populate buffer
-  renderer.setRenderTarget(lifeRenderTarget);
-  renderer.render( lifeScene, camera );
+  if (frame % 2 === 0) {
+    uniforms.u_texture.value = pong.texture;
+    mainUniforms.u_texture.value = pong.texture;
+    renderer.setRenderTarget(ping);
+    renderer.render( pingScene, camera );
+  } else {
+    uniforms.u_texture.value = ping.texture;
+    mainUniforms.u_texture.value = ping.texture;
+    renderer.setRenderTarget(pong);
+    renderer.render( pongScene, camera );
+  }
 
   // render to canvas
   renderer.setRenderTarget(null);
-  mainUniforms.u_texture.value = lifeRenderTarget.texture;
   renderer.render( scene, camera );
+  frame += 1;
 }
 
 function life() {
@@ -83,7 +96,18 @@ function life() {
     fragmentShader: lifeShader,
     uniforms,
   });
-  lifeScene.add(new THREE.Mesh(plane, material));
+  pingScene.add(new THREE.Mesh(plane, material));
+}
+
+function lifePong() {
+  // PlaneBufferGeometry is deprecated, use PlaneGeometry in the future?
+  const plane = new THREE.PlaneBufferGeometry(2,2);
+
+  const material = new THREE.ShaderMaterial({
+    fragmentShader: lifeShader,
+    uniforms,
+  });
+  pongScene.add(new THREE.Mesh(plane, material));
 }
 
 // img defines what finally gets rendered to the scene.
